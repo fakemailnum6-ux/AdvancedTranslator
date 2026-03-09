@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useAppStore, Project } from '../store';
+import { useEffect, useState } from 'react';
+import { useAppStore, type Project } from '../store';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 

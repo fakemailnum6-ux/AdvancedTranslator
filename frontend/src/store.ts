@@ -32,7 +32,7 @@ interface AppState {
 
   // App-wide
   activeProjectId: string | null;
-  setActiveProject: (id: string) => void;
+  setActiveProject: (id: string | null) => void;
 
   chapters: string[];
   setChapters: (chapters: string[]) => void;
