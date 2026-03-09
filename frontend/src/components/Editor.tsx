@@ -8,11 +8,13 @@ import { withHistory } from 'slate-history';
 interface SegmentEditorProps {
   initialValue: string;
   onChange: (value: string) => void;
-  onBlur: () => void;
+  onBlur: (value: string) => void;
   isLocked: boolean;
+  onEnter?: () => void;
+  onCtrlEnter?: () => void;
 }
 
-export const SegmentEditor: React.FC<SegmentEditorProps> = ({ initialValue, onChange, onBlur, isLocked }) => {
+export const SegmentEditor: React.FC<SegmentEditorProps> = ({ initialValue, onChange, onBlur, isLocked, onEnter, onCtrlEnter }) => {
   const editor = useMemo(() => withHistory(withReact(createEditor())), []);
 
   // Transform initial string value into Slate's document structure
@@ -25,8 +27,20 @@ export const SegmentEditor: React.FC<SegmentEditorProps> = ({ initialValue, onCh
     ];
   }, [initialValue]);
 
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      if (event.ctrlKey) {
+        event.preventDefault();
+        onCtrlEnter?.();
+      } else if (!event.shiftKey) {
+        event.preventDefault();
+        onEnter?.();
+      }
+    }
+  };
+
   return (
-    <div style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px', background: isLocked ? '#f5f5f5' : '#fff' }}>
+    <div className={`p-2 border rounded-md ${isLocked ? 'bg-background border-transparent' : 'bg-card border-border'} font-sans`}>
       <Slate
         editor={editor}
         initialValue={initialNodes}
@@ -44,9 +58,13 @@ export const SegmentEditor: React.FC<SegmentEditorProps> = ({ initialValue, onCh
       >
         <Editable
           readOnly={isLocked}
-          onBlur={onBlur}
+          onBlur={() => {
+            const text = editor.children.map((n: any) => n.children.map((c: any) => c.text).join('')).join('\n');
+            onBlur(text);
+          }}
+          onKeyDown={handleKeyDown}
           placeholder="Translate here..."
-          style={{ minHeight: '40px', outline: 'none' }}
+          className={`min-h-[40px] outline-none ${isLocked ? 'text-muted-foreground' : 'text-foreground'}`}
         />
       </Slate>
     </div>

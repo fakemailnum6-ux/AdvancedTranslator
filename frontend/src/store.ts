@@ -17,6 +17,14 @@ export interface Segment {
   version: number;
 }
 
+export interface Project {
+  id: string;
+  name: string;
+  source_lang: string;
+  target_lang: string;
+  created_at: string;
+}
+
 interface AppState {
   segments: Segment[];
   setSegments: (segments: Segment[]) => void;
@@ -25,6 +33,12 @@ interface AppState {
   // App-wide
   activeProjectId: string | null;
   setActiveProject: (id: string) => void;
+
+  chapters: string[];
+  setChapters: (chapters: string[]) => void;
+
+  currentChapter: string | null;
+  setCurrentChapter: (chapter: string | null) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -42,4 +56,10 @@ export const useAppStore = create<AppState>((set) => ({
 
   activeProjectId: null,
   setActiveProject: (id) => set({ activeProjectId: id }),
+
+  chapters: [],
+  setChapters: (chapters) => set({ chapters }),
+
+  currentChapter: null,
+  setCurrentChapter: (chapter) => set({ currentChapter: chapter }),
 }));

@@ -2,14 +2,15 @@ import React, { useCallback } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import { useAppStore } from '../store';
 import { SegmentEditor } from './Editor';
+import { Bot, Pencil, Check, Lock } from 'lucide-react';
 
 export const SegmentList: React.FC = () => {
   const { segments, updateSegment } = useAppStore();
 
-  const handleUpdate = async (id: string, newTarget: string, version: number) => {
+  const handleUpdate = async (id: string, newTarget: string, version: number, status: string = 'EDITED') => {
     try {
       // Optimistic update
-      updateSegment(id, newTarget, 'EDITED', version + 1);
+      updateSegment(id, newTarget, status as any, version + 1);
 
       // Call backend API
       const response = await fetch(`http://localhost:8000/api/segments/${id}`, {
@@ -19,7 +20,7 @@ export const SegmentList: React.FC = () => {
         },
         body: JSON.stringify({
           target_text: newTarget,
-          status: 'EDITED',
+          status: status,
           version: version,
           inline_tags: {}, // Dummy
         }),
@@ -47,37 +48,77 @@ export const SegmentList: React.FC = () => {
       const segment = segments[index];
       if (!segment) return null;
 
-      // Ensure padding inside style so the absolute positioning works nicely
+      const getStatusBorder = (status: string) => {
+        switch(status) {
+          case 'DRAFT':
+          case 'AI_TRANSLATED':
+             return 'border-orange-400';
+          case 'EDITED':
+             return 'border-blue-500';
+          case 'APPROVED':
+             return 'border-green-500';
+          case 'LOCKED':
+             return 'border-gray-500';
+          case 'NEW':
+          default:
+             return 'border-transparent';
+        }
+      };
+
+      const getStatusBg = (status: string) => {
+        if (status === 'APPROVED') return 'bg-green-50 dark:bg-green-900/20';
+        if (status === 'LOCKED') return 'bg-gray-100 dark:bg-gray-800/50';
+        return 'bg-transparent';
+      };
+
+      const renderStatusIcon = (status: string) => {
+         switch(status) {
+           case 'DRAFT':
+           case 'AI_TRANSLATED':
+              return <Bot size={16} className="text-orange-500" />;
+           case 'EDITED':
+              return <Pencil size={16} className="text-blue-500" />;
+           case 'APPROVED':
+              return <Check size={16} className="text-green-500" />;
+           case 'LOCKED':
+              return <Lock size={16} className="text-gray-500" />;
+           default:
+              return null;
+         }
+      };
+
       return (
-        <div style={{ ...style, display: 'flex', gap: '16px', borderBottom: '1px solid #eee', padding: '16px 24px', boxSizing: 'border-box' }}>
-          <div style={{ width: '40px', color: '#999', fontSize: '12px' }}>
+        <div style={style} className={`flex items-start gap-4 border-b border-border py-4 px-6 box-border border-l-4 ${getStatusBorder(segment.status)} ${getStatusBg(segment.status)}`}>
+          <div className="w-10 text-muted-foreground text-xs font-mono pt-2">
             {segment.segment_index}
           </div>
-          <div style={{ flex: 1, padding: '0 8px', borderRight: '1px solid #ccc' }}>
+          <div className="flex-1 px-2 border-r border-border text-foreground pt-2 text-sm leading-relaxed">
             {segment.source_text}
           </div>
-          <div style={{ flex: 1, padding: '0 8px' }}>
+          <div className="w-8 flex flex-col items-center justify-start pt-2 gap-2">
+            {renderStatusIcon(segment.status)}
+          </div>
+          <div className="flex-1 px-2 text-sm">
             <SegmentEditor
               initialValue={segment.target_text}
               isLocked={segment.status === 'LOCKED'}
-              onChange={(value) => {
-                // In a real app we'd debounce this
-                console.log(`Edited target text: ${value}`);
+              onChange={() => {
+                // To be implemented in next step
               }}
-              onBlur={() => {
-                // Trigger save on blur for simplicity
-                handleUpdate(segment.id, segment.target_text, segment.version);
+              onBlur={(value) => {
+                if (value !== segment.target_text) {
+                  handleUpdate(segment.id, value, segment.version, 'EDITED');
+                }
+              }}
+              onEnter={() => {
+                // Move focus down logic ideally via ref
+                console.log('Navigate next');
+              }}
+              onCtrlEnter={() => {
+                 // Confirm and move down
+                 handleUpdate(segment.id, segment.target_text, segment.version, 'APPROVED');
               }}
             />
-          </div>
-          <div style={{ width: '100px', fontSize: '12px', color: '#666', textAlign: 'right' }}>
-            <span style={{
-              padding: '2px 6px',
-              borderRadius: '4px',
-              background: segment.status === 'NEW' ? '#e0f2fe' : '#dcfce7'
-            }}>
-              {segment.status}
-            </span>
           </div>
         </div>
       );
@@ -86,8 +127,8 @@ export const SegmentList: React.FC = () => {
   );
 
   return (
-    <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '8px 24px', background: '#f8f9fa', borderBottom: '1px solid #e9ecef', fontWeight: 'bold' }}>
+    <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--panel-bg)' }}>
+      <div style={{ padding: '8px 24px', background: 'var(--bg-color)', borderBottom: '1px solid var(--border-color)', fontWeight: 'bold', color: 'var(--text-color)' }}>
         Translation Editor
       </div>
       <div style={{ flex: 1, position: 'relative' }}>

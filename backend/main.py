@@ -9,8 +9,8 @@ import ebooklib
 from ebooklib import epub
 from bs4 import BeautifulSoup
 
-from .database import init_global_db, init_project_db, save_segment, GLOBAL_DB_PATH
-from .nlp import segment_text
+from backend.database import init_global_db, init_project_db, save_segment, GLOBAL_DB_PATH
+from backend.nlp import segment_text
 
 # Models for the API requests
 class ImportEpubRequest(BaseModel):
@@ -41,6 +41,12 @@ app.add_middleware(
 # Application state for current open project
 current_project_id = None
 current_project_db_conn = None
+
+from backend.worker import run_cascade_translation
+
+class TMSearchRequest(BaseModel):
+    query: str
+    limit: int = 20
 
 @app.on_event("startup")
 def startup_event():
@@ -110,6 +116,17 @@ def import_epub(request: ImportEpubRequest):
 
     proj_conn.close()
 
+    # Trigger background worker by adding a Job
+    job_id = str(uuid.uuid4())
+    proj_conn = init_project_db(project_path)
+    proj_cursor = proj_conn.cursor()
+    proj_cursor.execute('''
+        INSERT INTO Jobs (id, task_type, payload, status)
+        VALUES (?, ?, ?, ?)
+    ''', (job_id, 'translate-chapter', json.dumps({"chapter_id": "all"}), 'PENDING'))
+    proj_conn.commit()
+    proj_conn.close()
+
     return {"status": "success", "project_id": project_id, "message": f"Project {request.project_name} imported successfully."}
 
 @app.post("/api/projects/open")
@@ -141,6 +158,54 @@ def open_project(request: OpenProjectRequest):
     current_project_id = request.project_id
 
     return {"status": "success", "message": f"Project {request.project_id} opened."}
+
+@app.get("/api/projects/list")
+def list_projects():
+    conn = init_global_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, name, source_lang, target_lang, created_at FROM Projects ORDER BY created_at DESC")
+    rows = cursor.fetchall()
+    conn.close()
+
+    projects = []
+    for row in rows:
+        projects.append({
+            "id": row[0],
+            "name": row[1],
+            "source_lang": row[2],
+            "target_lang": row[3],
+            "created_at": row[4]
+        })
+
+    return {"projects": projects}
+
+@app.get("/api/projects/{project_id}/chapters")
+def get_chapters(project_id: str):
+    conn = init_global_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT path FROM Projects WHERE id = ?", (project_id,))
+    row = cursor.fetchone()
+    conn.close()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    project_path = row[0]
+    db_path = os.path.join(project_path, "project.sqlite")
+
+    if not os.path.exists(db_path):
+        raise HTTPException(status_code=404, detail="Project database not found")
+
+    import sqlite3
+    proj_conn = sqlite3.connect(db_path)
+    proj_cursor = proj_conn.cursor()
+    proj_cursor.execute("SELECT DISTINCT chapter_id FROM Segments ORDER BY chapter_id")
+    rows = proj_cursor.fetchall()
+    proj_conn.close()
+
+    chapters = [row[0] for row in rows]
+    return {"chapters": chapters}
+
 
 @app.get("/api/chapters/{chapter_id}/segments")
 def get_segments(chapter_id: str, offset: int = 0, limit: int = 50):
@@ -203,6 +268,25 @@ def update_segment(segment_id: str, request: UpdateSegmentRequest):
             raise HTTPException(status_code=404, detail=str(e))
         else:
             raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/tm/search")
+def tm_search(req: TMSearchRequest):
+    conn = init_global_db()
+    cursor = conn.cursor()
+    # FTS5 search. Join with tm_units to get target_text because FTS table only indexes source_text
+    cursor.execute('''
+        SELECT tm_units.source_text, tm_units.target_text
+        FROM tm_fts
+        JOIN tm_units ON tm_fts.rowid = tm_units.id
+        WHERE tm_fts MATCH ?
+        LIMIT ?
+    ''', (f'"{req.query}"*', req.limit))
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    results = [{"source_text": r[0], "target_text": r[1]} for r in rows]
+    return {"status": "success", "results": results}
 
 if __name__ == "__main__":
     import uvicorn
