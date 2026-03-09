@@ -11,7 +11,7 @@ export function ProjectManager() {
   const [targetLang, setTargetLang] = useState('ru');
   const [isLoading, setIsLoading] = useState(false);
 
-  const { setActiveProject, activeProjectId } = useAppStore();
+  const { setActiveProject, activeProjectId, loadDemoProject } = useAppStore();
 
   useEffect(() => {
     fetchProjects();
@@ -77,6 +77,12 @@ export function ProjectManager() {
     <div className="flex flex-col h-full bg-slate-950 text-slate-200 p-8 overflow-y-auto">
       <h1 className="text-3xl font-bold mb-8 text-white">Project Manager</h1>
 
+      <div className="flex gap-4 mb-8">
+        <Button onClick={() => loadDemoProject()} variant="secondary">
+          Try Demo Project (UI Showcase)
+        </Button>
+      </div>
+
       <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 mb-8 max-w-2xl">
         <h2 className="text-xl font-semibold mb-4 text-white">Import EPUB</h2>
         <div className="space-y-4">
@@ -89,13 +95,29 @@ export function ProjectManager() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-400 mb-1">Absolute File Path</label>
-            <Input
-              value={filePath}
-              onChange={e => setFilePath(e.target.value)}
-              placeholder="/path/to/book.epub"
-            />
-            <p className="text-xs text-slate-500 mt-1">Provide the absolute path to the EPUB file on your system.</p>
+            <label className="block text-sm font-medium text-slate-400 mb-1">Select EPUB File</label>
+            <div className="flex gap-2">
+              <Input
+                type="file"
+                accept=".epub"
+                onChange={e => {
+                  if (e.target.files && e.target.files.length > 0) {
+                    // In a real Tauri app we'd use dialog.open()
+                    // Here we fall back to the path property if available, or just the name for mockup
+                    const file = e.target.files[0];
+                    setFilePath((file as any).path || file.name);
+
+                    if (!projectName) {
+                      setProjectName(file.name.replace('.epub', ''));
+                    }
+                  }
+                }}
+              />
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Currently selected path: <span className="text-slate-300 font-mono">{filePath || 'None'}</span>
+            </p>
+            <p className="text-xs text-red-400 mt-1">Note: Browser security may obscure absolute paths. Ensure the backend can read the path provided.</p>
           </div>
           <div className="flex gap-4">
             <div className="flex-1">

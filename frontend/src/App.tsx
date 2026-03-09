@@ -10,7 +10,7 @@ function App() {
   const { activeProjectId, currentChapter, setSegments, setChapters, setCurrentChapter } = useAppStore();
 
   useEffect(() => {
-    if (activeProjectId) {
+    if (activeProjectId && activeProjectId !== 'demo-project') {
       setLoading(true);
       fetch(`http://localhost:8000/api/projects/${activeProjectId}/chapters`)
         .then(res => res.json())
@@ -29,7 +29,7 @@ function App() {
   }, [activeProjectId, setChapters, setCurrentChapter]);
 
   useEffect(() => {
-    if (activeProjectId && currentChapter) {
+    if (activeProjectId && currentChapter && activeProjectId !== 'demo-project') {
       // Fetch initial chunk from backend
       fetch(`http://localhost:8000/api/chapters/${currentChapter}/segments?limit=50&offset=0`)
         .then(res => res.json())

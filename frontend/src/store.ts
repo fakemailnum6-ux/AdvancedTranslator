@@ -33,6 +33,7 @@ interface AppState {
   // App-wide
   activeProjectId: string | null;
   setActiveProject: (id: string | null) => void;
+  loadDemoProject: () => void;
 
   chapters: string[];
   setChapters: (chapters: string[]) => void;
@@ -56,6 +57,24 @@ export const useAppStore = create<AppState>((set) => ({
 
   activeProjectId: null,
   setActiveProject: (id) => set({ activeProjectId: id }),
+
+  loadDemoProject: () => {
+    set({
+      activeProjectId: "demo-project",
+      chapters: ["ch_1", "ch_2", "ch_3"],
+      currentChapter: "ch_1",
+      segments: Array.from({ length: 50 }).map((_, i) => ({
+        id: `seg_${i}`,
+        chapter_id: 'ch_1',
+        segment_index: i,
+        source_text: `This is dummy segment ${i} with an inline <1>tag</1> to demonstrate the layout.`,
+        target_text: `Это фиктивный сегмент ${i} с тегом для демонстрации интерфейса.`,
+        inline_tags: { "1": { prefix: "<b>", suffix: "</b>" } },
+        status: i % 5 === 0 ? 'LOCKED' : (i % 2 === 0 ? 'NEW' : 'EDITED'),
+        version: 1,
+      })) as any
+    });
+  },
 
   chapters: [],
   setChapters: (chapters) => set({ chapters }),
