@@ -52,26 +52,32 @@ function App() {
     );
   }
 
-  if (!activeProjectId) {
-    return (
-      <div className="h-screen w-screen overflow-hidden bg-slate-950 text-slate-100 dark">
-        <ProjectManager />
-      </div>
-    );
-  }
+  const [projectManagerOpen, setProjectManagerOpen] = useState(false);
 
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden bg-slate-950 text-slate-100 dark">
-      {/* Top Navbar */}
-      <div className="h-12 border-b border-slate-800 bg-slate-950 flex items-center px-4 justify-between shrink-0">
+    <div className="h-screen w-screen flex flex-col overflow-hidden text-slate-100 dark bg-background">
+      {/* Top Navbar (Global App Shell) */}
+      <div className="h-12 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur flex items-center px-4 justify-between shrink-0 z-50">
         <div className="flex items-center gap-4">
-          <div className="font-bold text-blue-500">Ultimate CAT</div>
-          <div className="text-sm text-slate-400">Project: {activeProjectId.slice(0, 8)}...</div>
+          <div className="font-bold text-slate-200">Workspace</div>
+          {activeProjectId && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-400">
+                {activeProjectId === 'demo-project' ? 'Demo Project' : `Project: ${activeProjectId.slice(0, 8)}...`}
+              </span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">Saved</span>
+            </div>
+          )}
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => useAppStore.getState().setActiveProject(null)}>
-            Close Project
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setProjectManagerOpen(true)}>
+            {activeProjectId ? 'Switch Project' : 'Open Project'}
           </Button>
+          {activeProjectId && (
+            <Button variant="ghost" size="sm" onClick={() => useAppStore.getState().setActiveProject(null)}>
+              Close
+            </Button>
+          )}
         </div>
       </div>
 
@@ -79,6 +85,8 @@ function App() {
       <div className="flex-1 overflow-hidden relative">
         <MainLayout />
       </div>
+
+      <ProjectManager open={projectManagerOpen} onOpenChange={setProjectManagerOpen} />
     </div>
   );
 }

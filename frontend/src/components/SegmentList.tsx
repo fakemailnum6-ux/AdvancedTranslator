@@ -1,13 +1,37 @@
-import React, { useCallback } from 'react';
-import { FixedSizeList as List } from 'react-window';
+import React, { useCallback, useEffect, useRef } from 'react';
+import { VariableSizeList as List } from 'react-window';
 import { useAppStore } from '../store';
 import { SegmentEditor } from './Editor';
-import { Bot, Pencil, Check, Lock } from 'lucide-react';
+import { Bot, Pencil, Check, Lock, Sparkles } from 'lucide-react';
 
-export const SegmentList: React.FC = () => {
-  const { segments, updateSegment } = useAppStore();
+const ROW_HEIGHT_ESTIMATE = 80;
+
+export const SegmentList: React.FC<{ isReference?: boolean }> = ({ isReference = false }) => {
+  const { segments, updateSegment, activeSegmentId, setActiveSegmentId } = useAppStore();
+  const listRef = useRef<List>(null);
+  const sizeMap = useRef<{ [key: number]: number }>({});
+
+  const setRowHeight = useCallback((index: number, size: number) => {
+    sizeMap.current = { ...sizeMap.current, [index]: size };
+    if (listRef.current) {
+      listRef.current.resetAfterIndex(index);
+    }
+  }, []);
+
+  const getSize = (index: number) => sizeMap.current[index] || ROW_HEIGHT_ESTIMATE;
+
+  // Sync scroll for reference pane when active segment changes
+  useEffect(() => {
+    if (activeSegmentId && isReference && listRef.current) {
+      const index = segments.findIndex(s => s.id === activeSegmentId);
+      if (index !== -1) {
+        listRef.current.scrollToItem(index, "smart");
+      }
+    }
+  }, [activeSegmentId, isReference, segments]);
 
   const handleUpdate = async (id: string, newTarget: string, version: number, status: string = 'EDITED') => {
+    if (isReference) return;
     try {
       // Optimistic update
       updateSegment(id, newTarget, status as any, version + 1);
@@ -71,80 +95,125 @@ export const SegmentList: React.FC = () => {
         return 'bg-transparent';
       };
 
+      const isActive = activeSegmentId === segment.id;
+      const rowRef = useRef<HTMLDivElement>(null);
+
+      // Report row height to react-window
+      useEffect(() => {
+        if (rowRef.current) {
+          setRowHeight(index, rowRef.current.getBoundingClientRect().height + 16); // padding
+        }
+      }, [segment.source_text, segment.target_text, index, setRowHeight]);
+
       const renderStatusIcon = (status: string) => {
          switch(status) {
            case 'DRAFT':
            case 'AI_TRANSLATED':
-              return <Bot size={16} className="text-orange-500" />;
+              return <Sparkles size={14} className="text-purple-400" />;
            case 'EDITED':
-              return <Pencil size={16} className="text-blue-500" />;
+              return <Pencil size={14} className="text-blue-400" />;
            case 'APPROVED':
-              return <Check size={16} className="text-green-500" />;
+              return <Check size={14} className="text-green-500" />;
            case 'LOCKED':
-              return <Lock size={16} className="text-gray-500" />;
+              return <Lock size={14} className="text-slate-600" />;
            default:
-              return null;
+              return <div className="w-1.5 h-1.5 rounded-full bg-slate-600" />;
          }
       };
 
+      if (isReference) {
+        // READONLY SOURCE PANE (Continuous Flow)
+        return (
+          <div style={style} className="px-2 py-1">
+            <div
+              ref={rowRef}
+              className={`px-3 py-2 rounded-md transition-colors text-[15px] leading-relaxed cursor-pointer ${
+                isActive
+                ? 'bg-blue-500/10 text-slate-200 shadow-[inset_3px_0_0_0_#3b82f6]'
+                : 'text-slate-400 hover:text-slate-300'
+              }`}
+              onClick={() => setActiveSegmentId(segment.id)}
+            >
+              {segment.source_text}
+            </div>
+          </div>
+        );
+      }
+
+      // EDITOR PANE (Target)
       return (
-        <div style={style} className={`flex items-start gap-4 border-b border-border py-4 px-6 box-border border-l-4 ${getStatusBorder(segment.status)} ${getStatusBg(segment.status)}`}>
-          <div className="w-10 text-muted-foreground text-xs font-mono pt-2">
-            {segment.segment_index}
-          </div>
-          <div className="flex-1 px-2 border-r border-border text-foreground pt-2 text-sm leading-relaxed">
-            {segment.source_text}
-          </div>
-          <div className="w-8 flex flex-col items-center justify-start pt-2 gap-2">
-            {renderStatusIcon(segment.status)}
-          </div>
-          <div className="flex-1 px-2 text-sm">
-            <SegmentEditor
-              initialValue={segment.target_text}
-              isLocked={segment.status === 'LOCKED'}
-              onChange={() => {
-                // To be implemented in next step
-              }}
-              onBlur={(value) => {
-                if (value !== segment.target_text) {
-                  handleUpdate(segment.id, value, segment.version, 'EDITED');
-                }
-              }}
-              onEnter={() => {
-                // Move focus down logic ideally via ref
-                console.log('Navigate next');
-              }}
-              onCtrlEnter={() => {
-                 // Confirm and move down
-                 handleUpdate(segment.id, segment.target_text, segment.version, 'APPROVED');
-              }}
-            />
+        <div style={style} className="px-2 py-1">
+          <div
+            ref={rowRef}
+            className={`flex items-start gap-3 p-3 rounded-lg border transition-all duration-200 cursor-text ${
+              isActive
+              ? 'bg-slate-800/80 border-blue-500/30 shadow-sm ring-1 ring-blue-500/20'
+              : 'bg-transparent border-transparent hover:bg-slate-800/40'
+            }`}
+            onClick={() => {
+              if (!isActive) setActiveSegmentId(segment.id);
+            }}
+          >
+            <div className="flex flex-col items-center gap-2 mt-1 w-6 shrink-0 opacity-70">
+              <span className="text-[10px] text-slate-500 font-mono">{segment.segment_index}</span>
+              {renderStatusIcon(segment.status)}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              {isActive ? (
+                <div className="bg-slate-950/50 rounded-md border border-slate-700/50 shadow-inner p-1">
+                  <SegmentEditor
+                    initialValue={segment.target_text}
+                    isLocked={segment.status === 'LOCKED'}
+                    onChange={() => {}}
+                    onBlur={(value) => {
+                      if (value !== segment.target_text) {
+                        handleUpdate(segment.id, value, segment.version, 'EDITED');
+                      }
+                    }}
+                    onEnter={() => {
+                       // Move focus logic
+                    }}
+                    onCtrlEnter={() => {
+                       handleUpdate(segment.id, segment.target_text, segment.version, 'APPROVED');
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="text-[15px] leading-relaxed text-slate-300 whitespace-pre-wrap py-1">
+                  {segment.status === 'NEW' && segment.target_text === '' ? (
+                     <div className="animate-pulse flex space-x-2 mt-1 w-2/3">
+                        <div className="h-4 bg-slate-800 rounded w-full"></div>
+                     </div>
+                  ) : (
+                     segment.target_text || <span className="text-slate-600 italic">Empty segment...</span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       );
     },
-    [segments, handleUpdate]
+    [segments, handleUpdate, activeSegmentId, isReference, setActiveSegmentId, setRowHeight]
   );
 
+  if (segments.length === 0) {
+      return null;
+  }
+
   return (
-    <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--panel-bg)' }}>
-      <div style={{ padding: '8px 24px', background: 'var(--bg-color)', borderBottom: '1px solid var(--border-color)', fontWeight: 'bold', color: 'var(--text-color)' }}>
-        Translation Editor
-      </div>
-      <div style={{ flex: 1, position: 'relative' }}>
-        {segments.length > 0 ? (
-          <List
-            height={800} // Hardcoded for demo, normally use AutoSizer
-            itemCount={segments.length}
-            itemSize={120} // Approximate height per row
-            width="100%"
-          >
-            {Row}
-          </List>
-        ) : (
-          <div style={{ padding: '24px' }}>Loading segments or none available...</div>
-        )}
-      </div>
+    <div className="absolute inset-0">
+      <List
+        ref={listRef}
+        height={window.innerHeight - 150} // approximate fallback
+        itemCount={segments.length}
+        itemSize={getSize}
+        width={'100%'}
+        className="hide-scrollbar"
+      >
+        {Row}
+      </List>
     </div>
   );
 };

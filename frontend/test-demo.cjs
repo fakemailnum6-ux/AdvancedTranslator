@@ -13,20 +13,19 @@ const { chromium } = require('playwright');
     }
   });
 
-  page.on('pageerror', error => {
-    console.log(`UNCAUGHT ERROR: ${error.message}`);
-  });
-
-  // Try loading the built static files
-  await page.goto('http://localhost:5173', { waitUntil: 'networkidle' });
+  // Try loading the built static files on Vite's default port 5174 from the log
+  await page.goto('http://localhost:5174', { waitUntil: 'networkidle' });
   await page.waitForTimeout(2000);
 
-  // Click demo button
+  // Take a screenshot of the modal to verify it shows up
+  await page.screenshot({ path: 'demo-modal.png', fullPage: true });
+
+  // Click demo button to load the new continuous editor workspace
   await page.getByRole('button', { name: 'Try Demo Project (UI Showcase)' }).click();
   await page.waitForTimeout(2000); // Wait for transition
 
-  // Take a screenshot to see what's actually rendering
-  await page.screenshot({ path: 'demo-view.png', fullPage: true });
+  // Take a screenshot to see what's actually rendering in the workspace
+  await page.screenshot({ path: 'demo-workspace.png', fullPage: true });
 
   await browser.close();
   console.log('Screenshots saved');

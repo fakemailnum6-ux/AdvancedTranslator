@@ -30,10 +30,17 @@ interface AppState {
   setSegments: (segments: Segment[]) => void;
   updateSegment: (id: string, newTarget: string, newStatus: SegmentStatus, newVersion: number) => void;
 
+  // Continuous Editor Sync
+  activeSegmentId: string | null;
+  setActiveSegmentId: (id: string | null) => void;
+
   // App-wide
   activeProjectId: string | null;
   setActiveProject: (id: string | null) => void;
   loadDemoProject: () => void;
+
+  isSidebarOpen: boolean;
+  toggleSidebar: () => void;
 
   chapters: string[];
   setChapters: (chapters: string[]) => void;
@@ -58,6 +65,9 @@ export const useAppStore = create<AppState>((set) => ({
   activeProjectId: null,
   setActiveProject: (id) => set({ activeProjectId: id }),
 
+  isSidebarOpen: true,
+  toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
+
   loadDemoProject: () => {
     set({
       activeProjectId: "demo-project",
@@ -81,4 +91,7 @@ export const useAppStore = create<AppState>((set) => ({
 
   currentChapter: null,
   setCurrentChapter: (chapter) => set({ currentChapter: chapter }),
+
+  activeSegmentId: null,
+  setActiveSegmentId: (id) => set({ activeSegmentId: id }),
 }));

@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { useAppStore, type Project } from '../store';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 
-export function ProjectManager() {
+export function ProjectManager({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [filePath, setFilePath] = useState('');
   const [projectName, setProjectName] = useState('');
@@ -65,6 +66,7 @@ export function ProjectManager() {
       });
       if (res.ok) {
         setActiveProject(id);
+        onOpenChange(false); // Close dialog
       } else {
         alert("Failed to open project");
       }
@@ -74,18 +76,24 @@ export function ProjectManager() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 text-slate-200 p-8 overflow-y-auto">
-      <h1 className="text-3xl font-bold mb-8 text-white">Project Manager</h1>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-slate-950 text-slate-200 border-slate-800">
+        <DialogHeader>
+          <DialogTitle className="text-2xl">Project Manager</DialogTitle>
+          <DialogDescription>
+            Import a new EPUB or open an existing project to start translating.
+          </DialogDescription>
+        </DialogHeader>
 
-      <div className="flex gap-4 mb-8">
-        <Button onClick={() => loadDemoProject()} variant="secondary">
-          Try Demo Project (UI Showcase)
-        </Button>
-      </div>
+        <div className="flex gap-4 my-4">
+          <Button onClick={() => { loadDemoProject(); onOpenChange(false); }} variant="secondary">
+            Try Demo Project (UI Showcase)
+          </Button>
+        </div>
 
-      <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 mb-8 max-w-2xl">
-        <h2 className="text-xl font-semibold mb-4 text-white">Import EPUB</h2>
-        <div className="space-y-4">
+        <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-6 mb-6">
+          <h2 className="text-lg font-medium mb-4 text-white">Import New EPUB</h2>
+          <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-400 mb-1">Project Name</label>
             <Input
@@ -135,33 +143,34 @@ export function ProjectManager() {
         </div>
       </div>
 
-      <div>
-        <h2 className="text-xl font-semibold mb-4 text-white">Recent Projects</h2>
-        {projects.length === 0 ? (
-          <p className="text-slate-500 italic">No projects found. Import an EPUB to get started.</p>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {projects.map(proj => (
-              <div
-                key={proj.id}
-                className={`p-4 rounded-lg border transition-colors ${activeProjectId === proj.id ? 'bg-blue-900/20 border-blue-500' : 'bg-slate-900 border-slate-800 hover:border-slate-600'}`}
-              >
-                <h3 className="font-medium text-lg text-white mb-1 truncate">{proj.name}</h3>
-                <div className="text-sm text-slate-400 mb-4">
-                  {proj.source_lang.toUpperCase()} ➔ {proj.target_lang.toUpperCase()}
-                </div>
-                <Button
-                  onClick={() => handleOpen(proj.id)}
-                  variant={activeProjectId === proj.id ? "default" : "secondary"}
-                  className="w-full"
+        <div>
+          <h2 className="text-lg font-medium mb-4 text-white">Recent Projects</h2>
+          {projects.length === 0 ? (
+            <p className="text-slate-500 italic">No projects found. Import an EPUB to get started.</p>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {projects.map(proj => (
+                <div
+                  key={proj.id}
+                  className={`p-4 rounded-lg border transition-colors ${activeProjectId === proj.id ? 'bg-blue-900/20 border-blue-500' : 'bg-slate-900 border-slate-800 hover:border-slate-600'}`}
                 >
-                  {activeProjectId === proj.id ? 'Current' : 'Open'}
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+                  <h3 className="font-medium text-lg text-white mb-1 truncate">{proj.name}</h3>
+                  <div className="text-sm text-slate-400 mb-4">
+                    {proj.source_lang.toUpperCase()} ➔ {proj.target_lang.toUpperCase()}
+                  </div>
+                  <Button
+                    onClick={() => handleOpen(proj.id)}
+                    variant={activeProjectId === proj.id ? "default" : "secondary"}
+                    className="w-full"
+                  >
+                    {activeProjectId === proj.id ? 'Current' : 'Open'}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

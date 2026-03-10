@@ -24,6 +24,9 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
+
+    --workspace-bg: 210 40% 96.1%; /* Светлый серый фон рабочего пространства */
+    --pane-bg: 0 0% 100%;          /* Белый фон самих панелей (скругленных) */
   }
 
   .dark {
@@ -46,6 +49,9 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 48%;
+
+    --workspace-bg: 222 47% 6%; /* Очень темный, почти черный фон рабочего пространства */
+    --pane-bg: 217.2 32.6% 12%;   /* Слегка светлее для самих панелей (скругленных) */
   }
 }
 
@@ -54,6 +60,53 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
+}
+
+/*
+  FlexLayout-React Overrides
+  Transforming the traditional table-like layout into modern rounded panes (IDE/Workspace style).
+*/
+
+/* The main workspace background */
+.flexlayout__layout {
+  background-color: hsl(var(--workspace-bg)) !important;
+}
+
+/* The areas containing the tabs/panes */
+.flexlayout__tabset {
+  background-color: transparent !important;
+}
+
+/* The actual content area inside a tabset (the pane itself) */
+.flexlayout__tab {
+  background-color: hsl(var(--pane-bg)) !important;
+  border-radius: 1rem !important; /* rounded-2xl */
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  overflow: hidden;
+  margin: 4px; /* Space between panes and splitters */
+  border: 1px solid hsl(var(--border));
+}
+
+/* Tab Headers (We will hide or completely restyle them later, for now just minimal) */
+.flexlayout__tabset_header {
+  background-color: transparent !important;
+  height: 0px !important; /* We will use custom headers inside the pane components */
+  display: none !important;
+}
+
+/* Splitters (The draggable areas between panes) */
+.flexlayout__splitter {
+  background-color: transparent !important;
+}
+.flexlayout__splitter:hover {
+  background-color: hsl(var(--primary) / 0.2) !important;
+  transition: background-color 0.2s ease;
+}
+
+/* Hide borders and other old UI elements */
+.flexlayout__border {
+  display: none !important;
 }
