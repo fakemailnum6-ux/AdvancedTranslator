@@ -92,8 +92,9 @@
 
 /* Tab Headers (We will hide or completely restyle them later, for now just minimal) */
 .flexlayout__tabset_header {
-  background-color: transparent !important;
-  height: 0px !important; /* We will use custom headers inside the pane components */
+  display: none !important;
+}
+.flexlayout__tab_button {
   display: none !important;
 }
 

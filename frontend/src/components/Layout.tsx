@@ -2,16 +2,16 @@ import React from 'react';
 import { Layout, Model, TabNode } from 'flexlayout-react';
 import 'flexlayout-react/style/dark.css';
 import { SegmentList } from './SegmentList';
-import { ConcordancePanel } from './ConcordancePanel';
 
 const json = {
     global: {
-        tabEnableClose: false,
+        tabEnableClose: true,
         tabEnableRename: false,
-        tabSetHeaderHeight: 0, // Header is hidden entirely via CSS
+        tabSetEnableTabStrip: true, // Allow tab strip so users can drag and add/remove tabs
+        tabSetHeaderHeight: 30,
         splitterSize: 6,
     },
-    borders: [], // No bottom borders/tabs anymore
+    borders: [],
     layout: {
         type: "row",
         weight: 100,
@@ -25,8 +25,8 @@ const json = {
                         type: "tab",
                         name: "Reference",
                         component: "reference_pane",
-                        enableDrag: false,
-                        enableClose: false
+                        enableDrag: true,
+                        enableClose: true
                     }
                 ]
             },
@@ -39,8 +39,8 @@ const json = {
                         type: "tab",
                         name: "Editor",
                         component: "editor_pane",
-                        enableDrag: false,
-                        enableClose: false
+                        enableDrag: true,
+                        enableClose: true
                     }
                 ]
             }
@@ -49,7 +49,7 @@ const json = {
 };
 
 import { useAppStore } from '../store';
-import { Menu, Book, Settings, Maximize2 } from 'lucide-react';
+import { Book, Settings, Maximize2, Zap, Sparkles, MoreVertical, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { Button } from './ui/button';
 
 export const MainLayout: React.FC = () => {
@@ -61,18 +61,30 @@ export const MainLayout: React.FC = () => {
 
         if (component === "editor_pane") {
             return (
-                <div className="flex flex-col h-full bg-slate-900 overflow-hidden">
-                    <div className="h-10 shrink-0 border-b border-slate-800/60 bg-slate-900/50 flex items-center px-4 justify-between">
-                        <div className="flex items-center gap-2">
-                            <span className="bg-blue-600/20 text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">RU</span>
+                <div className="flex flex-col h-full bg-slate-900 overflow-hidden relative group">
+                    {/* Header bar that floats slightly over content but pushes it down */}
+                    <div className="h-10 shrink-0 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur flex items-center px-4 justify-between z-10">
+                        <div className="flex items-center gap-3">
+                            <span className="bg-blue-600/20 text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ring-1 ring-blue-500/30">RU</span>
                             <span className="text-sm font-medium text-slate-200">Target Translation</span>
                         </div>
-                        <div className="flex gap-2">
-                            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-slate-400 hover:text-slate-100"><Maximize2 className="h-3 w-3 mr-1" />Focus</Button>
+                        <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-slate-400 hover:text-purple-300 hover:bg-purple-900/20" title="Smart AI Translation">
+                                <Sparkles className="h-3.5 w-3.5 mr-1.5" /> AI Translate
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-slate-400 hover:text-blue-300 hover:bg-blue-900/20" title="Machine Translation">
+                                <Zap className="h-3.5 w-3.5 mr-1.5" /> Quick MT
+                            </Button>
+                            <div className="w-px h-4 bg-slate-800 mx-1"></div>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-slate-100">
+                                <Maximize2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-slate-100">
+                                <MoreVertical className="h-3.5 w-3.5" />
+                            </Button>
                         </div>
                     </div>
-                    <div className="flex-1 overflow-auto relative p-4 lg:p-8">
-                        {/* Editor Component Will Go Here */}
+                    <div className="flex-1 overflow-auto relative p-2 lg:p-4 hide-scrollbar">
                         <SegmentList />
                     </div>
                 </div>
@@ -81,16 +93,19 @@ export const MainLayout: React.FC = () => {
 
         if (component === "reference_pane") {
             return (
-                <div className="flex flex-col h-full bg-slate-900 overflow-hidden">
-                    <div className="h-10 shrink-0 border-b border-slate-800/60 bg-slate-900/50 flex items-center px-4 justify-between">
-                        <div className="flex items-center gap-2">
-                            <span className="bg-slate-700 text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">EN</span>
+                <div className="flex flex-col h-full bg-slate-900 overflow-hidden group">
+                    <div className="h-10 shrink-0 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur flex items-center px-4 justify-between z-10">
+                        <div className="flex items-center gap-3">
+                            <span className="bg-slate-800 text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ring-1 ring-slate-700">EN</span>
                             <span className="text-sm font-medium text-slate-200">Source Text</span>
                         </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-slate-100">
+                                <MoreVertical className="h-3.5 w-3.5" />
+                            </Button>
+                        </div>
                     </div>
-                    <div className="flex-1 overflow-auto relative p-4 lg:p-8 opacity-80 pointer-events-none select-text">
-                        {/* We reuse segment list for now, but will customize to be readonly Source */}
-                        <div className="text-slate-400 italic">Source text sync will render here...</div>
+                    <div className="flex-1 overflow-auto relative p-2 lg:p-4 opacity-90 select-text hide-scrollbar">
                         <SegmentList isReference={true} />
                     </div>
                 </div>
@@ -105,11 +120,11 @@ export const MainLayout: React.FC = () => {
 
             {/* Collapsible Left Sidebar (Activity Bar style) */}
             <div className={`transition-all duration-300 ease-in-out border-r border-slate-800/60 bg-slate-950/40 flex flex-col shrink-0 ${isSidebarOpen ? 'w-64' : 'w-[60px]'}`}>
-                <div className="h-12 border-b border-slate-800/60 flex items-center justify-between px-3">
-                    <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-8 w-8 text-slate-400 hover:text-slate-100 hover:bg-slate-800">
-                        <Menu className="h-4 w-4" />
+                <div className="h-12 border-b border-slate-800/60 flex items-center px-3 overflow-hidden gap-3">
+                    <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-8 w-8 text-slate-400 hover:text-slate-100 hover:bg-slate-800 shrink-0">
+                        {isSidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
                     </Button>
-                    {isSidebarOpen && <span className="font-semibold text-xs text-slate-300 uppercase tracking-wider">Files</span>}
+                    {isSidebarOpen && <span className="font-semibold text-xs text-slate-300 uppercase tracking-wider whitespace-nowrap">Chapters</span>}
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-2 space-y-1 mt-2">

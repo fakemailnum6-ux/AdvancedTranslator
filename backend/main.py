@@ -42,7 +42,6 @@ app.add_middleware(
 current_project_id = None
 current_project_db_conn = None
 
-from backend.worker import run_cascade_translation
 
 class TMSearchRequest(BaseModel):
     query: str
