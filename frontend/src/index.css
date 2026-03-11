@@ -90,11 +90,30 @@
   border: 1px solid hsl(var(--border));
 }
 
-/* Tab Headers (We will hide or completely restyle them later, for now just minimal) */
+/* Tab Headers - we need these visible so users can drag, drop, and close tabs */
 .flexlayout__tabset_header {
-  display: none !important;
+  background-color: transparent !important;
+  border-bottom: none !important;
 }
 .flexlayout__tab_button {
+  background-color: hsl(var(--pane-bg)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-bottom: none !important;
+  border-radius: 0.5rem 0.5rem 0 0 !important;
+  margin-right: 4px !important;
+  margin-left: 4px !important;
+  margin-top: 4px !important;
+  padding: 0 12px !important;
+  color: hsl(var(--foreground)) !important;
+  font-size: 0.8rem !important;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1) !important;
+}
+.flexlayout__tab_button--selected {
+  background-color: hsl(var(--pane-bg)) !important;
+  border-bottom: 1px solid hsl(var(--pane-bg)) !important;
+  z-index: 10 !important;
+}
+.flexlayout__tab_button_trailing {
   display: none !important;
 }
 

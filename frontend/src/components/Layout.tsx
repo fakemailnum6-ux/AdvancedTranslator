@@ -8,7 +8,7 @@ const json = {
         tabEnableClose: true,
         tabEnableRename: false,
         tabSetEnableTabStrip: true, // Allow tab strip so users can drag and add/remove tabs
-        tabSetHeaderHeight: 30,
+        tabSetHeaderHeight: 35,
         splitterSize: 6,
     },
     borders: [],
@@ -49,8 +49,9 @@ const json = {
 };
 
 import { useAppStore } from '../store';
-import { Book, Settings, Maximize2, Zap, Sparkles, MoreVertical, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Book, Settings, Maximize2, Zap, Sparkles, MoreVertical, PanelLeftClose, PanelLeftOpen, Plus } from 'lucide-react';
 import { Button } from './ui/button';
+import { Actions, DockLocation } from 'flexlayout-react';
 
 export const MainLayout: React.FC = () => {
     const [model] = React.useState(() => Model.fromJson(json));
@@ -61,9 +62,9 @@ export const MainLayout: React.FC = () => {
 
         if (component === "editor_pane") {
             return (
-                <div className="flex flex-col h-full bg-slate-900 overflow-hidden relative group">
+                <div className="flex flex-col h-full bg-neutral-900 overflow-hidden relative group">
                     {/* Header bar that floats slightly over content but pushes it down */}
-                    <div className="h-10 shrink-0 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur flex items-center px-4 justify-between z-10">
+                    <div className="h-10 shrink-0 border-b border-neutral-800/60 bg-neutral-900/95 backdrop-blur flex items-center px-4 justify-between z-10">
                         <div className="flex items-center gap-3">
                             <span className="bg-blue-600/20 text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ring-1 ring-blue-500/30">RU</span>
                             <span className="text-sm font-medium text-slate-200">Target Translation</span>
@@ -93,8 +94,8 @@ export const MainLayout: React.FC = () => {
 
         if (component === "reference_pane") {
             return (
-                <div className="flex flex-col h-full bg-slate-900 overflow-hidden group">
-                    <div className="h-10 shrink-0 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur flex items-center px-4 justify-between z-10">
+                <div className="flex flex-col h-full bg-neutral-900 overflow-hidden group">
+                    <div className="h-10 shrink-0 border-b border-neutral-800/60 bg-neutral-900/95 backdrop-blur flex items-center px-4 justify-between z-10">
                         <div className="flex items-center gap-3">
                             <span className="bg-slate-800 text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ring-1 ring-slate-700">EN</span>
                             <span className="text-sm font-medium text-slate-200">Source Text</span>
@@ -115,12 +116,30 @@ export const MainLayout: React.FC = () => {
         return <div className="text-slate-500 flex items-center justify-center h-full">Empty Pane</div>;
     };
 
+    const handleAddEditorPane = () => {
+        model.doAction(Actions.addNode(
+            { type: "tab", component: "editor_pane", name: "Editor", enableClose: true, enableDrag: true },
+            model.getRoot().getChildren()[0].getId(),
+            DockLocation.RIGHT,
+            -1
+        ));
+    };
+
+    const handleAddReferencePane = () => {
+        model.doAction(Actions.addNode(
+            { type: "tab", component: "reference_pane", name: "Reference", enableClose: true, enableDrag: true },
+            model.getRoot().getChildren()[0].getId(),
+            DockLocation.LEFT,
+            -1
+        ));
+    };
+
     return (
         <div className="flex h-full w-full bg-transparent overflow-hidden">
 
             {/* Collapsible Left Sidebar (Activity Bar style) */}
-            <div className={`transition-all duration-300 ease-in-out border-r border-slate-800/60 bg-slate-950/40 flex flex-col shrink-0 ${isSidebarOpen ? 'w-64' : 'w-[60px]'}`}>
-                <div className="h-12 border-b border-slate-800/60 flex items-center px-3 overflow-hidden gap-3">
+            <div className={`transition-all duration-300 ease-in-out border-r border-neutral-800/60 bg-neutral-950/40 flex flex-col shrink-0 ${isSidebarOpen ? 'w-64' : 'w-[60px]'}`}>
+                <div className="h-12 border-b border-neutral-800/60 flex items-center px-3 overflow-hidden gap-3">
                     <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-8 w-8 text-slate-400 hover:text-slate-100 hover:bg-slate-800 shrink-0">
                         {isSidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
                     </Button>
@@ -157,8 +176,19 @@ export const MainLayout: React.FC = () => {
             </div>
 
             {/* Main FlexLayout Workspace (Panes Area) */}
-            <div className="flex-1 relative bg-transparent p-2">
-                <Layout model={model} factory={factory} />
+            <div className="flex-1 relative bg-neutral-950 p-2 flex flex-col">
+                <div className="h-10 shrink-0 flex items-center justify-end px-4 gap-2 border-b border-neutral-800/40">
+                    <span className="text-xs text-neutral-500 mr-2">Workspace Controls:</span>
+                    <Button variant="outline" size="sm" onClick={handleAddReferencePane} className="h-7 text-xs" title="Add Source Text Pane">
+                        <Plus className="h-3.5 w-3.5 mr-1" /> Source
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleAddEditorPane} className="h-7 text-xs" title="Add Target Translation Pane">
+                        <Plus className="h-3.5 w-3.5 mr-1" /> Translation
+                    </Button>
+                </div>
+                <div className="flex-1 relative">
+                    <Layout model={model} factory={factory} />
+                </div>
             </div>
         </div>
     );

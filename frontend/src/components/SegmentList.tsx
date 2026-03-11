@@ -102,13 +102,13 @@ export const SegmentList: React.FC<{ isReference?: boolean }> = ({ isReference =
         // READONLY SOURCE PANE (Continuous Flow)
         // Eliminating vertical padding to make it look like a single continuous paragraph block.
         return (
-          <div style={style} className="px-6 flex">
+          <div style={style} className="flex">
             <div
               ref={rowRef}
-              className={`flex-1 px-3 py-1 my-0.5 rounded transition-colors text-[16px] leading-8 font-serif cursor-pointer ${
+              className={`flex-1 px-8 py-0 rounded-none transition-colors text-[16px] leading-8 font-serif cursor-pointer ${
                 isActive
                 ? 'bg-blue-500/10 text-slate-100 shadow-[inset_3px_0_0_0_#3b82f6]'
-                : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/30'
+                : 'text-slate-400 hover:text-slate-300 hover:bg-neutral-800/50'
               }`}
               onClick={() => setActiveSegmentId(segment.id)}
             >
@@ -120,26 +120,26 @@ export const SegmentList: React.FC<{ isReference?: boolean }> = ({ isReference =
 
       // EDITOR PANE (Target - Continuous Flow)
       return (
-        <div style={style} className="px-2 lg:px-8 flex group">
+        <div style={style} className="flex group">
           {/* Status gutter (absolute left, outside the text flow) */}
-          <div className="w-12 shrink-0 flex flex-col items-center pt-2.5 opacity-40 group-hover:opacity-100 transition-opacity select-none">
+          <div className="w-12 shrink-0 flex flex-col items-center pt-2 opacity-40 group-hover:opacity-100 transition-opacity select-none border-r border-transparent group-hover:border-neutral-800/30 mr-2">
             {renderStatusIcon(segment.status)}
             {isActive && <span className="text-[9px] mt-1 text-slate-500 font-mono">{segment.segment_index}</span>}
           </div>
 
           <div
             ref={rowRef}
-            className={`flex-1 transition-all duration-200 cursor-text rounded-md px-3 py-1 my-0.5 ${
+            className={`flex-1 transition-all duration-200 cursor-text rounded-none px-4 py-0 ${
               isActive
-              ? 'bg-slate-800/60 shadow-[inset_3px_0_0_0_#3b82f6]'
-              : 'hover:bg-slate-800/30'
+              ? 'bg-neutral-800/60 shadow-[inset_3px_0_0_0_#3b82f6]'
+              : 'hover:bg-neutral-800/50'
             }`}
             onClick={() => {
               if (!isActive) setActiveSegmentId(segment.id);
             }}
           >
             {isActive ? (
-              <div className="py-1">
+              <div className="py-0">
                 <SegmentEditor
                   initialValue={segment.target_text}
                   isLocked={segment.status === 'LOCKED'}
@@ -161,7 +161,7 @@ export const SegmentList: React.FC<{ isReference?: boolean }> = ({ isReference =
               <div className="text-[16px] leading-8 font-serif text-slate-300 whitespace-pre-wrap">
                 {segment.status === 'NEW' && segment.target_text === '' ? (
                    <div className="animate-pulse flex space-x-2 mt-2 w-2/3">
-                      <div className="h-4 bg-slate-800/50 rounded w-full"></div>
+                      <div className="h-4 bg-neutral-800/50 rounded w-full"></div>
                    </div>
                 ) : (
                    segment.target_text || <span className="text-slate-600 italic">Empty segment...</span>
