@@ -7,3 +7,4 @@ pyahocorasick==2.1.0
 EbookLib==0.18
 pydantic==2.7.4
 sqlite-utils==3.36
+python-multipart==0.0.9

@@ -7,7 +7,28 @@ import './App.css';
 
 function App() {
   const [loading, setLoading] = useState(false);
+  const [backendConnected, setBackendConnected] = useState(true);
   const { activeProjectId, currentChapter, setChapters, setCurrentChapter } = useAppStore();
+
+  useEffect(() => {
+    // Backend health check polling
+    const checkHealth = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/api/health', { method: 'GET' });
+        if (res.ok) {
+          setBackendConnected(true);
+        } else {
+          setBackendConnected(false);
+        }
+      } catch (e) {
+        setBackendConnected(false);
+      }
+    };
+
+    checkHealth();
+    const interval = setInterval(checkHealth, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (activeProjectId && activeProjectId !== 'demo-project') {
@@ -59,7 +80,12 @@ function App() {
       <div className="h-12 border-b border-black/30 backdrop-blur flex items-center px-4 justify-between shrink-0 z-50" style={{ backgroundColor: 'hsl(var(--workspace-bg))' }}>
         <div className="flex items-center gap-4">
           <div className="font-bold text-slate-200">Workspace</div>
-          {activeProjectId && (
+          {!backendConnected && (
+            <div className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 animate-pulse">
+              Offline - Backend Disconnected
+            </div>
+          )}
+          {activeProjectId && backendConnected && (
             <div className="flex items-center gap-2">
               <span className="text-sm text-slate-400">
                 {activeProjectId === 'demo-project' ? 'Demo Project' : `Project: ${activeProjectId.slice(0, 8)}...`}

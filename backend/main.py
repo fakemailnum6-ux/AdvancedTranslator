@@ -1,8 +1,9 @@
 import os
 import json
 import uuid
+import shutil
 from typing import List, Dict, Optional, Any
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import ebooklib
@@ -13,12 +14,6 @@ from backend.database import init_global_db, init_project_db, save_chapter, GLOB
 from backend.nlp import segment_text
 
 # Models for the API requests
-class ImportEpubRequest(BaseModel):
-    file_path: str
-    source_lang: str
-    target_lang: str
-    project_name: str
-
 class OpenProjectRequest(BaseModel):
     project_id: str
 
@@ -55,14 +50,28 @@ def startup_event():
 def read_root():
     return {"message": "CAT-Tool Backend is running."}
 
-@app.post("/api/projects/import-epub")
-def import_epub(request: ImportEpubRequest):
-    if not os.path.exists(request.file_path):
-        raise HTTPException(status_code=404, detail=f"File not found: {request.file_path}")
+@app.get("/api/health")
+def health_check():
+    return {"status": "ok"}
 
+@app.post("/api/projects/import-epub")
+def import_epub(
+    file: UploadFile = File(...),
+    source_lang: str = Form(...),
+    target_lang: str = Form(...),
+    project_name: str = Form(...)
+):
     project_id = str(uuid.uuid4())
     project_path = os.path.join("projects", project_id)
     os.makedirs(project_path, exist_ok=True)
+
+    # Save the uploaded file locally to avoid path issues with spaces or special characters
+    local_epub_path = os.path.join(project_path, "source.epub")
+    try:
+        with open(local_epub_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save uploaded file: {str(e)}")
 
     # Initialize the Global DB entry
     conn = init_global_db()
@@ -70,7 +79,7 @@ def import_epub(request: ImportEpubRequest):
     cursor.execute('''
         INSERT INTO Projects (id, name, path, source_lang, target_lang)
         VALUES (?, ?, ?, ?, ?)
-    ''', (project_id, request.project_name, project_path, request.source_lang, request.target_lang))
+    ''', (project_id, project_name, project_path, source_lang, target_lang))
     conn.commit()
     conn.close()
 
@@ -79,7 +88,7 @@ def import_epub(request: ImportEpubRequest):
     proj_cursor = proj_conn.cursor()
 
     try:
-        book = epub.read_epub(request.file_path)
+        book = epub.read_epub(local_epub_path)
         chapter_id_counter = 0
 
         for item in book.get_items():
@@ -123,7 +132,7 @@ def import_epub(request: ImportEpubRequest):
     proj_conn.commit()
     proj_conn.close()
 
-    return {"status": "success", "project_id": project_id, "message": f"Project {request.project_name} imported successfully."}
+    return {"status": "success", "project_id": project_id, "message": f"Project {project_name} imported successfully."}
 
 @app.post("/api/projects/open")
 def open_project(request: OpenProjectRequest):

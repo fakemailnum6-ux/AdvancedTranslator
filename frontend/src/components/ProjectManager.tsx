@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 
 export function ProjectManager({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [filePath, setFilePath] = useState('');
+  const [file, setFile] = useState<File | null>(null);
   const [projectName, setProjectName] = useState('');
   const [sourceLang, setSourceLang] = useState('en');
   const [targetLang, setTargetLang] = useState('ru');
@@ -29,21 +29,22 @@ export function ProjectManager({ open, onOpenChange }: { open: boolean, onOpenCh
   };
 
   const handleImport = async () => {
-    if (!filePath || !projectName) return;
+    if (!file || !projectName) return;
     setIsLoading(true);
     try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('project_name', projectName);
+      formData.append('source_lang', sourceLang);
+      formData.append('target_lang', targetLang);
+
       const res = await fetch('http://localhost:8000/api/projects/import-epub', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          file_path: filePath,
-          project_name: projectName,
-          source_lang: sourceLang,
-          target_lang: targetLang
-        })
+        body: formData,
       });
+
       if (res.ok) {
-        setFilePath('');
+        setFile(null);
         setProjectName('');
         await fetchProjects();
       } else {
@@ -110,22 +111,19 @@ export function ProjectManager({ open, onOpenChange }: { open: boolean, onOpenCh
                 accept=".epub"
                 onChange={e => {
                   if (e.target.files && e.target.files.length > 0) {
-                    // In a real Tauri app we'd use dialog.open()
-                    // Here we fall back to the path property if available, or just the name for mockup
-                    const file = e.target.files[0];
-                    setFilePath((file as any).path || file.name);
+                    const selectedFile = e.target.files[0];
+                    setFile(selectedFile);
 
                     if (!projectName) {
-                      setProjectName(file.name.replace('.epub', ''));
+                      setProjectName(selectedFile.name.replace('.epub', ''));
                     }
                   }
                 }}
               />
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              Currently selected path: <span className="text-slate-300 font-mono">{filePath || 'None'}</span>
+              Selected file: <span className="text-slate-300 font-mono">{file?.name || 'None'}</span>
             </p>
-            <p className="text-xs text-red-400 mt-1">Note: Browser security may obscure absolute paths. Ensure the backend can read the path provided.</p>
           </div>
           <div className="flex gap-4">
             <div className="flex-1">
