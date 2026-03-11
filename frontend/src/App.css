@@ -1,0 +1,18 @@
+@import './index.css';
+
+/* Remove old variables */
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.App {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  /* Use workspace variable for the app background */
+  background-color: hsl(var(--workspace-bg));
+  display: flex;
+  flex-direction: column;
+}

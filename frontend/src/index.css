@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+
+    --workspace-bg: 210 40% 96.1%; /* Светлый серый фон рабочего пространства */
+    --pane-bg: 0 0% 100%;          /* Белый фон самих панелей (скругленных) */
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+
+    --workspace-bg: 0 0% 12%; /* Более светлый темно-серый (neutral) фон приложения */
+    --pane-bg: 0 0% 18%;      /* Чистый серый для текстовых окон, контрастный */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/*
+  FlexLayout-React Overrides
+  Transforming the traditional table-like layout into modern rounded panes (IDE/Workspace style).
+*/
+
+/* The main workspace background */
+.flexlayout__layout {
+  background-color: hsl(var(--workspace-bg)) !important;
+}
+
+/* The areas containing the tabs/panes */
+.flexlayout__tabset {
+  background-color: transparent !important;
+}
+
+/* The actual content area inside a tabset (the pane itself) */
+.flexlayout__tab {
+  background-color: hsl(var(--pane-bg)) !important;
+  border-radius: 1rem !important; /* rounded-2xl */
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  overflow: hidden;
+  margin: 4px; /* Space between panes and splitters */
+  border: 1px solid hsl(var(--border));
+}
+
+/* Tab Headers - we need these visible so users can drag, drop, and close tabs */
+.flexlayout__tabset_header {
+  background-color: transparent !important;
+  border-bottom: none !important;
+}
+.flexlayout__tab_button {
+  background-color: hsl(var(--pane-bg)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-bottom: none !important;
+  border-radius: 0.5rem 0.5rem 0 0 !important;
+  margin-right: 4px !important;
+  margin-left: 4px !important;
+  margin-top: 4px !important;
+  padding: 0 12px !important;
+  color: hsl(var(--foreground)) !important;
+  font-size: 0.8rem !important;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1) !important;
+}
+.flexlayout__tab_button--selected {
+  background-color: hsl(var(--pane-bg)) !important;
+  border-bottom: 1px solid hsl(var(--pane-bg)) !important;
+  z-index: 10 !important;
+}
+.flexlayout__tab_button_trailing {
+  display: none !important;
+}
+
+/* Splitters (The draggable areas between panes) */
+.flexlayout__splitter {
+  background-color: transparent !important;
+}
+.flexlayout__splitter:hover {
+  background-color: hsl(var(--primary) / 0.2) !important;
+  transition: background-color 0.2s ease;
+}
+
+/* Hide borders and other old UI elements */
+.flexlayout__border {
+  display: none !important;
+}

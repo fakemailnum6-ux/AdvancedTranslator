@@ -1,0 +1,4 @@
+*.sqlite
+*.epub
+*.sqlite-journal
+node_modules/

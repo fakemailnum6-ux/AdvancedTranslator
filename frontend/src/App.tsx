@@ -1,0 +1,119 @@
+import { useEffect, useState } from 'react';
+import { useAppStore } from './store';
+import { MainLayout } from './components/Layout';
+import { ProjectManager } from './components/ProjectManager';
+import { Button } from './components/ui/button';
+import './App.css';
+
+function App() {
+  const [loading, setLoading] = useState(false);
+  const [backendConnected, setBackendConnected] = useState(true);
+  const { activeProjectId, currentChapter, setChapters, setCurrentChapter } = useAppStore();
+
+  useEffect(() => {
+    // Backend health check polling
+    const checkHealth = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/api/health', { method: 'GET' });
+        if (res.ok) {
+          setBackendConnected(true);
+        } else {
+          setBackendConnected(false);
+        }
+      } catch (e) {
+        setBackendConnected(false);
+      }
+    };
+
+    checkHealth();
+    const interval = setInterval(checkHealth, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (activeProjectId && activeProjectId !== 'demo-project') {
+      setLoading(true);
+      fetch(`http://localhost:8000/api/projects/${activeProjectId}/chapters`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.chapters && data.chapters.length > 0) {
+            setChapters(data.chapters);
+            setCurrentChapter(data.chapters[0]); // Auto-open first chapter
+          }
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error("Failed to load chapters", err);
+          setLoading(false);
+        });
+    }
+  }, [activeProjectId, setChapters, setCurrentChapter]);
+
+  useEffect(() => {
+    if (activeProjectId && currentChapter && activeProjectId !== 'demo-project') {
+      fetch(`http://localhost:8000/api/chapters/${currentChapter}/text`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && !data.detail) {
+            useAppStore.getState().setChapterData(data);
+          }
+        })
+        .catch(err => {
+          console.error("Failed to load chapter text", err);
+        });
+    }
+  }, [activeProjectId, currentChapter]);
+
+  if (loading) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-slate-900 text-slate-100">
+        Loading project data...
+      </div>
+    );
+  }
+
+  const [projectManagerOpen, setProjectManagerOpen] = useState(false);
+
+  return (
+    <div className="h-screen w-screen flex flex-col overflow-hidden text-slate-100 dark bg-background">
+      {/* Top Navbar (Global App Shell) */}
+      <div className="h-12 border-b border-black/30 backdrop-blur flex items-center px-4 justify-between shrink-0 z-50" style={{ backgroundColor: 'hsl(var(--workspace-bg))' }}>
+        <div className="flex items-center gap-4">
+          <div className="font-bold text-slate-200">Workspace</div>
+          {!backendConnected && (
+            <div className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 animate-pulse">
+              Offline - Backend Disconnected
+            </div>
+          )}
+          {activeProjectId && backendConnected && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-400">
+                {activeProjectId === 'demo-project' ? 'Demo Project' : `Project: ${activeProjectId.slice(0, 8)}...`}
+              </span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">Saved</span>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setProjectManagerOpen(true)}>
+            {activeProjectId ? 'Switch Project' : 'Open Project'}
+          </Button>
+          {activeProjectId && (
+            <Button variant="ghost" size="sm" onClick={() => useAppStore.getState().setActiveProject(null)}>
+              Close
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-hidden relative">
+        <MainLayout />
+      </div>
+
+      <ProjectManager open={projectManagerOpen} onOpenChange={setProjectManagerOpen} />
+    </div>
+  );
+}
+
+export default App;
