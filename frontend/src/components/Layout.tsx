@@ -1,7 +1,7 @@
 import React from 'react';
 import { Layout, Model, TabNode } from 'flexlayout-react';
 import 'flexlayout-react/style/dark.css';
-import { SegmentList } from './SegmentList';
+import { ContinuousDocument } from './ContinuousDocument';
 
 const json = {
     global: {
@@ -62,9 +62,9 @@ export const MainLayout: React.FC = () => {
 
         if (component === "editor_pane") {
             return (
-                <div className="flex flex-col h-full bg-neutral-900 overflow-hidden relative group">
+                <div className="flex flex-col h-full overflow-hidden relative group" style={{ backgroundColor: 'hsl(var(--pane-bg))' }}>
                     {/* Header bar that floats slightly over content but pushes it down */}
-                    <div className="h-10 shrink-0 border-b border-neutral-800/60 bg-neutral-900/95 backdrop-blur flex items-center px-4 justify-between z-10">
+                    <div className="h-10 shrink-0 border-b border-black/20 backdrop-blur flex items-center px-4 justify-between z-10">
                         <div className="flex items-center gap-3">
                             <span className="bg-blue-600/20 text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ring-1 ring-blue-500/30">RU</span>
                             <span className="text-sm font-medium text-slate-200">Target Translation</span>
@@ -85,8 +85,8 @@ export const MainLayout: React.FC = () => {
                             </Button>
                         </div>
                     </div>
-                    <div className="flex-1 overflow-auto relative p-2 lg:p-4 hide-scrollbar">
-                        <SegmentList />
+                    <div className="flex-1 overflow-auto relative p-0 hide-scrollbar scroll-smooth">
+                        <ContinuousDocument />
                     </div>
                 </div>
             );
@@ -94,8 +94,8 @@ export const MainLayout: React.FC = () => {
 
         if (component === "reference_pane") {
             return (
-                <div className="flex flex-col h-full bg-neutral-900 overflow-hidden group">
-                    <div className="h-10 shrink-0 border-b border-neutral-800/60 bg-neutral-900/95 backdrop-blur flex items-center px-4 justify-between z-10">
+                <div className="flex flex-col h-full overflow-hidden group" style={{ backgroundColor: 'hsl(var(--pane-bg))' }}>
+                    <div className="h-10 shrink-0 border-b border-black/20 backdrop-blur flex items-center px-4 justify-between z-10">
                         <div className="flex items-center gap-3">
                             <span className="bg-slate-800 text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ring-1 ring-slate-700">EN</span>
                             <span className="text-sm font-medium text-slate-200">Source Text</span>
@@ -106,8 +106,8 @@ export const MainLayout: React.FC = () => {
                             </Button>
                         </div>
                     </div>
-                    <div className="flex-1 overflow-auto relative p-2 lg:p-4 opacity-90 select-text hide-scrollbar">
-                        <SegmentList isReference={true} />
+                    <div className="flex-1 overflow-auto relative p-0 opacity-90 select-text hide-scrollbar scroll-smooth">
+                        <ContinuousDocument isReference={true} />
                     </div>
                 </div>
             );
@@ -138,7 +138,7 @@ export const MainLayout: React.FC = () => {
         <div className="flex h-full w-full bg-transparent overflow-hidden">
 
             {/* Collapsible Left Sidebar (Activity Bar style) */}
-            <div className={`transition-all duration-300 ease-in-out border-r border-neutral-800/60 bg-neutral-950/40 flex flex-col shrink-0 ${isSidebarOpen ? 'w-64' : 'w-[60px]'}`}>
+            <div className={`transition-all duration-300 ease-in-out border-r border-black/30 flex flex-col shrink-0 ${isSidebarOpen ? 'w-64' : 'w-[60px]'}`} style={{ backgroundColor: 'hsl(var(--workspace-bg))' }}>
                 <div className="h-12 border-b border-neutral-800/60 flex items-center px-3 overflow-hidden gap-3">
                     <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-8 w-8 text-slate-400 hover:text-slate-100 hover:bg-slate-800 shrink-0">
                         {isSidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
@@ -176,17 +176,17 @@ export const MainLayout: React.FC = () => {
             </div>
 
             {/* Main FlexLayout Workspace (Panes Area) */}
-            <div className="flex-1 relative bg-neutral-950 p-2 flex flex-col">
-                <div className="h-10 shrink-0 flex items-center justify-end px-4 gap-2 border-b border-neutral-800/40">
-                    <span className="text-xs text-neutral-500 mr-2">Workspace Controls:</span>
-                    <Button variant="outline" size="sm" onClick={handleAddReferencePane} className="h-7 text-xs" title="Add Source Text Pane">
+            <div className="flex-1 relative p-4 flex flex-col" style={{ backgroundColor: 'hsl(var(--workspace-bg))' }}>
+                <div className="absolute top-4 right-6 z-50 flex items-center gap-2">
+                    <span className="text-xs text-neutral-500 mr-2">Add Pane:</span>
+                    <Button variant="secondary" size="sm" onClick={handleAddReferencePane} className="h-7 text-xs shadow-md border border-white/10" title="Add Source Text Pane">
                         <Plus className="h-3.5 w-3.5 mr-1" /> Source
                     </Button>
-                    <Button variant="outline" size="sm" onClick={handleAddEditorPane} className="h-7 text-xs" title="Add Target Translation Pane">
+                    <Button variant="secondary" size="sm" onClick={handleAddEditorPane} className="h-7 text-xs shadow-md border border-white/10" title="Add Target Translation Pane">
                         <Plus className="h-3.5 w-3.5 mr-1" /> Translation
                     </Button>
                 </div>
-                <div className="flex-1 relative">
+                <div className="flex-1 relative mt-2">
                     <Layout model={model} factory={factory} />
                 </div>
             </div>

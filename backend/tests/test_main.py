@@ -8,18 +8,17 @@ def test_read_root():
     assert response.status_code == 200
     assert response.json() == {"message": "CAT-Tool Backend is running."}
 
-def test_get_segments_no_project():
-    response = client.get("/api/chapters/ch1/segments?offset=0&limit=5")
+def test_get_chapter_no_project():
+    response = client.get("/api/chapters/ch1/text")
     assert response.status_code == 400
 
-def test_update_segment_no_project():
+def test_update_chapter_no_project():
     payload = {
         "target_text": "Новый перевод",
         "status": "EDITED",
-        "version": 1,
-        "inline_tags": {"1": {"prefix": "<b>", "suffix": "</b>"}}
+        "version": 1
     }
-    response = client.put("/api/segments/seg_1", json=payload)
+    response = client.put("/api/chapters/ch1/text", json=payload)
     assert response.status_code == 400
 
 def test_tm_search():

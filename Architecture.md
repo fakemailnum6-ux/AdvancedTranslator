@@ -72,31 +72,31 @@ id (PK), term (TEXT), translation (TEXT), definition (TEXT), context (TEXT).
 
 2.2. Локальная БД проекта (project.sqlite)
 
-Таблица Segments (Рабочая таблица)
+Таблица Chapters (Рабочая таблица)
 
-id (PK), chapter_id (FK)
+id (TEXT, UUID, PK)
 
-segment_index (INT)
+chapter_id (TEXT, UNIQUE)
 
-source_text (TEXT) - Содержит inline-плейсхолдеры.
+source_text (TEXT) - Полный текст главы (Continuous Text).
 
-target_text (TEXT)
-
-inline_tags (JSON) - Хранит маппинг. Пример: {"1": {"prefix": "<b>", "suffix": "</b>"}}.
+target_text (TEXT) - Полный перевод главы.
 
 status (TEXT) - Enum: NEW, TRANSLATED, EDITED, APPROVED, LOCKED.
+
+locked_by (TEXT), comment (TEXT)
 
 version (INTEGER, DEFAULT 1) - Для оптимистичной блокировки.
 
 3. СТРОГИЕ REST API КОНТРАКТЫ
 
-3.1. Работа с сегментами (Пагинация & Optimistic UI)
+3.1. Работа с текстом глав (Continuous Text & Optimistic UI)
 
-GET /api/chapters/{chapter_id}/segments?offset=0&limit=50
+GET /api/chapters/{chapter_id}/text
 
-PUT /api/segments/{segment_id}
+PUT /api/chapters/{chapter_id}/text
 
-Payload: {"target_text": "...", "status": "EDITED", "version": 5, "inline_tags": {...}}.
+Payload: {"target_text": "...", "status": "EDITED", "version": 5}.
 
 Optimistic Locking: Если payload.version != db.version, бэкенд возвращает 409 Conflict.
 
@@ -104,15 +104,13 @@ Optimistic Locking: Если payload.version != db.version, бэкенд воз�
 
 Жестко запрещено хардкодить API-вызовы. Используется паттерн Provider Registry.
 
-5. ПАЙПЛАЙН ИМПОРТА И СЕГМЕНТАЦИИ (NLP & TAGS)
+5. ПАЙПЛАЙН ИМПОРТА (CONTINUOUS TEXT)
 
-Шаг 1: Извлечение блочных элементов (<p>, <div>).
+Шаг 1: Извлечение текста (BeautifulSoup, get_text).
 
-Шаг 2: spaCy разбивает абзацы на предложения.
+Шаг 2: Запись целой главы в таблицу Chapters.
 
-Шаг 3: Инлайн-теги (<1>) записываются в inline_tags JSON.
-
-Шаг 4: Запись в Segments.
+(NLP сегментация на предложения больше не используется для базового хранения, так как текст редактируется как единый документ).
 
 6. ВСТРОЕННАЯ WORKER-СИСТЕМА И ТМ PIPELINE
 

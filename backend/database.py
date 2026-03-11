@@ -78,15 +78,13 @@ def init_project_db(project_path: str):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    # Segments Table
+    # Chapters Table (Replaces Segments Table to hold entire document text)
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS Segments (
+        CREATE TABLE IF NOT EXISTS Chapters (
             id TEXT PRIMARY KEY,
-            chapter_id TEXT,
-            segment_index INTEGER,
+            chapter_id TEXT UNIQUE,
             source_text TEXT,
             target_text TEXT,
-            inline_tags TEXT, -- JSON mapping
             status TEXT DEFAULT 'NEW',
             locked_by TEXT,
             comment TEXT,
@@ -96,8 +94,7 @@ def init_project_db(project_path: str):
     ''')
 
     # Indexes
-    cursor.execute('''CREATE INDEX IF NOT EXISTS idx_segments_chapter ON Segments(chapter_id)''')
-    cursor.execute('''CREATE INDEX IF NOT EXISTS idx_segments_index ON Segments(segment_index)''')
+    cursor.execute('''CREATE INDEX IF NOT EXISTS idx_chapters_chapter ON Chapters(chapter_id)''')
 
     # Jobs (Persistent Queue)
     cursor.execute('''
@@ -113,29 +110,28 @@ def init_project_db(project_path: str):
     conn.commit()
     return conn
 
-def save_segment(conn: sqlite3.Connection, segment_id: str, new_target: str, version: int, status: str, inline_tags: dict):
+def save_chapter(conn: sqlite3.Connection, chapter_id: str, new_target: str, version: int, status: str):
     cursor = conn.cursor()
 
     # Optimistic locking check
-    cursor.execute("SELECT version FROM Segments WHERE id = ?", (segment_id,))
+    cursor.execute("SELECT version FROM Chapters WHERE chapter_id = ?", (chapter_id,))
     row = cursor.fetchone()
     if not row:
-        raise ValueError("Segment not found")
+        raise ValueError("Chapter not found")
 
     db_version = row[0]
     if db_version != version:
-        raise ValueError("Conflict: Segment version mismatch")
+        raise ValueError("Conflict: Chapter version mismatch")
 
     # Update
     cursor.execute('''
-        UPDATE Segments
+        UPDATE Chapters
         SET target_text = ?,
             version = ?,
             status = ?,
-            inline_tags = ?,
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-    ''', (new_target, version + 1, status, json.dumps(inline_tags), segment_id))
+        WHERE chapter_id = ?
+    ''', (new_target, version + 1, status, chapter_id))
 
     conn.commit()
     return version + 1

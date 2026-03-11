@@ -1,7 +1,7 @@
 import os
 import sqlite3
 import pytest
-from backend.database import init_global_db, init_project_db, save_segment
+from backend.database import init_global_db, init_project_db, save_chapter
 
 def test_global_db_init(tmp_path):
     # Override global path for test
@@ -22,26 +22,26 @@ def test_project_db_init_and_save(tmp_path):
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
     tables = [row[0] for row in cursor.fetchall()]
-    assert "Segments" in tables
+    assert "Chapters" in tables
 
-    # Insert dummy segment
+    # Insert dummy chapter
     cursor.execute('''
-        INSERT INTO Segments (id, chapter_id, segment_index, source_text, target_text, status, version)
-        VALUES ('seg1', 'ch1', 0, 'Source', 'Target', 'NEW', 1)
+        INSERT INTO Chapters (id, chapter_id, source_text, target_text, status, version)
+        VALUES ('uuid1', 'ch1', 'Source text', 'Target text', 'NEW', 1)
     ''')
     conn.commit()
 
     # Test valid update
-    new_ver = save_segment(conn, 'seg1', 'New Target', 1, 'EDITED', {})
+    new_ver = save_chapter(conn, 'ch1', 'New Target', 1, 'EDITED')
     assert new_ver == 2
 
-    cursor.execute("SELECT target_text, version FROM Segments WHERE id='seg1'")
+    cursor.execute("SELECT target_text, version FROM Chapters WHERE chapter_id='ch1'")
     row = cursor.fetchone()
     assert row[0] == 'New Target'
     assert row[1] == 2
 
     # Test optimistic locking conflict
-    with pytest.raises(ValueError, match="Conflict: Segment version mismatch"):
-        save_segment(conn, 'seg1', 'Another Target', 1, 'EDITED', {}) # Still trying with version 1
+    with pytest.raises(ValueError, match="Conflict: Chapter version mismatch"):
+        save_chapter(conn, 'ch1', 'Another Target', 1, 'EDITED') # Still trying with version 1
 
     conn.close()

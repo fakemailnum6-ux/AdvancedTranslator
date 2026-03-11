@@ -9,7 +9,7 @@ import ebooklib
 from ebooklib import epub
 from bs4 import BeautifulSoup
 
-from backend.database import init_global_db, init_project_db, save_segment, GLOBAL_DB_PATH
+from backend.database import init_global_db, init_project_db, save_chapter, GLOBAL_DB_PATH
 from backend.nlp import segment_text
 
 # Models for the API requests
@@ -22,11 +22,10 @@ class ImportEpubRequest(BaseModel):
 class OpenProjectRequest(BaseModel):
     project_id: str
 
-class UpdateSegmentRequest(BaseModel):
+class UpdateChapterRequest(BaseModel):
     target_text: str
     status: str
     version: int
-    inline_tags: Dict[str, Any]
 
 app = FastAPI(title="Advanced CAT-Tool API", version="9.0.0")
 
@@ -89,25 +88,23 @@ def import_epub(request: ImportEpubRequest):
                 chapter_id_counter += 1
                 html_content = item.get_content().decode('utf-8', errors='ignore')
 
-                # NLP segmentation
-                segments = segment_text(html_content)
+                # Extract text without NLP segmentation
+                soup = BeautifulSoup(html_content, 'html.parser')
+                text = soup.get_text(separator='\n\n', strip=True)
 
-                # Insert segments
-                for i, seg in enumerate(segments):
-                    seg_id = f"{chapter_id}_{i}"
-                    proj_cursor.execute('''
-                        INSERT INTO Segments (id, chapter_id, segment_index, source_text, target_text, status, inline_tags, version)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    ''', (
-                        seg_id,
-                        chapter_id,
-                        seg["segment_index"],
-                        seg["source_text"],
-                        "", # Target is empty initially
-                        "NEW",
-                        json.dumps(seg.get("inline_tags", {})),
-                        1
-                    ))
+                # Insert chapter
+                chapter_uuid = str(uuid.uuid4())
+                proj_cursor.execute('''
+                    INSERT INTO Chapters (id, chapter_id, source_text, target_text, status, version)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ''', (
+                    chapter_uuid,
+                    chapter_id,
+                    text,
+                    "", # Target is empty initially
+                    "NEW",
+                    1
+                ))
         proj_conn.commit()
     except Exception as e:
         proj_conn.close()
@@ -198,7 +195,7 @@ def get_chapters(project_id: str):
     import sqlite3
     proj_conn = sqlite3.connect(db_path)
     proj_cursor = proj_conn.cursor()
-    proj_cursor.execute("SELECT DISTINCT chapter_id FROM Segments ORDER BY chapter_id")
+    proj_cursor.execute("SELECT chapter_id FROM Chapters ORDER BY chapter_id")
     rows = proj_cursor.fetchall()
     proj_conn.close()
 
@@ -206,60 +203,48 @@ def get_chapters(project_id: str):
     return {"chapters": chapters}
 
 
-@app.get("/api/chapters/{chapter_id}/segments")
-def get_segments(chapter_id: str, offset: int = 0, limit: int = 50):
+@app.get("/api/chapters/{chapter_id}/text")
+def get_chapter_text(chapter_id: str):
     global current_project_db_conn
     if not current_project_db_conn:
         raise HTTPException(status_code=400, detail="No project opened. Call /api/projects/open first.")
 
     cursor = current_project_db_conn.cursor()
 
-    # Get total count
-    cursor.execute("SELECT COUNT(*) FROM Segments WHERE chapter_id = ?", (chapter_id,))
-    total = cursor.fetchone()[0]
-
-    # Get chunk
     cursor.execute('''
-        SELECT id, chapter_id, segment_index, source_text, target_text, inline_tags, status, version
-        FROM Segments
+        SELECT id, chapter_id, source_text, target_text, status, version
+        FROM Chapters
         WHERE chapter_id = ?
-        ORDER BY segment_index ASC
-        LIMIT ? OFFSET ?
-    ''', (chapter_id, limit, offset))
+    ''', (chapter_id,))
 
-    rows = cursor.fetchall()
+    row = cursor.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Chapter not found")
 
-    segments = []
-    for row in rows:
-        segments.append({
-            "id": row["id"],
-            "chapter_id": row["chapter_id"],
-            "segment_index": row["segment_index"],
-            "source_text": row["source_text"],
-            "target_text": row["target_text"],
-            "inline_tags": json.loads(row["inline_tags"]),
-            "status": row["status"],
-            "version": row["version"]
-        })
+    return {
+        "id": row["id"],
+        "chapter_id": row["chapter_id"],
+        "source_text": row["source_text"],
+        "target_text": row["target_text"],
+        "status": row["status"],
+        "version": row["version"]
+    }
 
-    return {"items": segments, "total": total}
-
-@app.put("/api/segments/{segment_id}")
-def update_segment(segment_id: str, request: UpdateSegmentRequest):
+@app.put("/api/chapters/{chapter_id}/text")
+def update_chapter_text(chapter_id: str, request: UpdateChapterRequest):
     global current_project_db_conn
     if not current_project_db_conn:
         raise HTTPException(status_code=400, detail="No project opened. Call /api/projects/open first.")
 
     try:
-        new_version = save_segment(
+        new_version = save_chapter(
             current_project_db_conn,
-            segment_id,
+            chapter_id,
             request.target_text,
             request.version,
-            request.status,
-            request.inline_tags
+            request.status
         )
-        return {"status": "success", "message": "Segment updated", "new_version": new_version}
+        return {"status": "success", "message": "Chapter updated", "new_version": new_version}
     except ValueError as e:
         if "Conflict" in str(e):
             raise HTTPException(status_code=409, detail=str(e))

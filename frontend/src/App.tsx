@@ -7,7 +7,7 @@ import './App.css';
 
 function App() {
   const [loading, setLoading] = useState(false);
-  const { activeProjectId, currentChapter, setSegments, setChapters, setCurrentChapter } = useAppStore();
+  const { activeProjectId, currentChapter, setChapters, setCurrentChapter } = useAppStore();
 
   useEffect(() => {
     if (activeProjectId && activeProjectId !== 'demo-project') {
@@ -30,19 +30,18 @@ function App() {
 
   useEffect(() => {
     if (activeProjectId && currentChapter && activeProjectId !== 'demo-project') {
-      // Fetch initial chunk from backend
-      fetch(`http://localhost:8000/api/chapters/${currentChapter}/segments?limit=50&offset=0`)
+      fetch(`http://localhost:8000/api/chapters/${currentChapter}/text`)
         .then(res => res.json())
         .then(data => {
-          if (data.items) {
-            setSegments(data.items);
+          if (data && !data.detail) {
+            useAppStore.getState().setChapterData(data);
           }
         })
         .catch(err => {
-          console.error("Failed to load segments", err);
+          console.error("Failed to load chapter text", err);
         });
     }
-  }, [activeProjectId, currentChapter, setSegments]);
+  }, [activeProjectId, currentChapter]);
 
   if (loading) {
     return (
@@ -57,7 +56,7 @@ function App() {
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden text-slate-100 dark bg-background">
       {/* Top Navbar (Global App Shell) */}
-      <div className="h-12 border-b border-neutral-800/60 bg-neutral-950/80 backdrop-blur flex items-center px-4 justify-between shrink-0 z-50">
+      <div className="h-12 border-b border-black/30 backdrop-blur flex items-center px-4 justify-between shrink-0 z-50" style={{ backgroundColor: 'hsl(var(--workspace-bg))' }}>
         <div className="flex items-center gap-4">
           <div className="font-bold text-slate-200">Workspace</div>
           {activeProjectId && (

@@ -28,25 +28,25 @@ def run_cascade_translation(project_path: str, source_lang: str, target_lang: st
     tm_sources = {row[0]: row[1] for row in tm_data}
     tm_source_list = list(tm_sources.keys())
 
-    # Get all NEW segments
-    proj_cursor.execute("SELECT id, source_text, version, inline_tags FROM Segments WHERE status='NEW'")
-    segments = proj_cursor.fetchall()
+    # Get all NEW chapters
+    proj_cursor.execute("SELECT chapter_id, source_text, version FROM Chapters WHERE status='NEW'")
+    chapters = proj_cursor.fetchall()
 
-    if not segments:
+    if not chapters:
         return
 
     mt_texts_to_translate = []
-    mt_segment_map = [] # stores segment ids to update later
+    mt_chapter_map = [] # stores chapter ids to update later
 
-    for seg_id, source_text, version, inline_tags in segments:
+    for chapter_id, source_text, version in chapters:
         # Step 1: Exact Match
         if source_text in tm_sources:
             target_text = tm_sources[source_text]
             proj_cursor.execute('''
-                UPDATE Segments
+                UPDATE Chapters
                 SET target_text=?, status='TRANSLATED', version=version+1, updated_at=CURRENT_TIMESTAMP
-                WHERE id=? AND version=?
-            ''', (target_text, seg_id, version))
+                WHERE chapter_id=? AND version=?
+            ''', (target_text, chapter_id, version))
             continue
 
         # Step 2: Fuzzy Match (RapidFuzz)
@@ -57,15 +57,15 @@ def run_cascade_translation(project_path: str, source_lang: str, target_lang: st
                 matched_source = match[0]
                 target_text = tm_sources[matched_source]
                 proj_cursor.execute('''
-                    UPDATE Segments
+                    UPDATE Chapters
                     SET target_text=?, status='DRAFT', version=version+1, updated_at=CURRENT_TIMESTAMP
-                    WHERE id=? AND version=?
-                ''', (target_text, seg_id, version))
+                    WHERE chapter_id=? AND version=?
+                ''', (target_text, chapter_id, version))
                 continue
 
         # Step 3: MT Fallback
         mt_texts_to_translate.append(source_text)
-        mt_segment_map.append((seg_id, version))
+        mt_chapter_map.append((chapter_id, version))
 
     # Execute database updates for TM matches
     proj_conn.commit()
@@ -82,12 +82,12 @@ def run_cascade_translation(project_path: str, source_lang: str, target_lang: st
 
             # Save MT results back
             for i, target_text in enumerate(mt_results):
-                seg_id, version = mt_segment_map[i]
+                chapter_id, version = mt_chapter_map[i]
                 proj_cursor.execute('''
-                    UPDATE Segments
+                    UPDATE Chapters
                     SET target_text=?, status='AI_TRANSLATED', version=version+1, updated_at=CURRENT_TIMESTAMP
-                    WHERE id=? AND version=?
-                ''', (target_text, seg_id, version))
+                    WHERE chapter_id=? AND version=?
+                ''', (target_text, chapter_id, version))
             proj_conn.commit()
 
         except Exception as e:

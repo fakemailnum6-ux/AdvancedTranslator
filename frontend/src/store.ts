@@ -2,21 +2,6 @@ import { create } from 'zustand';
 
 export type SegmentStatus = 'NEW' | 'TRANSLATED' | 'EDITED' | 'APPROVED' | 'LOCKED';
 
-export interface InlineTags {
-  [key: string]: { prefix: string; suffix: string };
-}
-
-export interface Segment {
-  id: string;
-  chapter_id: string;
-  segment_index: number;
-  source_text: string;
-  target_text: string;
-  inline_tags: InlineTags;
-  status: SegmentStatus;
-  version: number;
-}
-
 export interface Project {
   id: string;
   name: string;
@@ -25,15 +10,16 @@ export interface Project {
   created_at: string;
 }
 
+export interface ChapterData {
+  id: string;
+  chapter_id: string;
+  source_text: string;
+  target_text: string;
+  status: SegmentStatus;
+  version: number;
+}
+
 interface AppState {
-  segments: Segment[];
-  setSegments: (segments: Segment[]) => void;
-  updateSegment: (id: string, newTarget: string, newStatus: SegmentStatus, newVersion: number) => void;
-
-  // Continuous Editor Sync
-  activeSegmentId: string | null;
-  setActiveSegmentId: (id: string | null) => void;
-
   // App-wide
   activeProjectId: string | null;
   setActiveProject: (id: string | null) => void;
@@ -47,21 +33,14 @@ interface AppState {
 
   currentChapter: string | null;
   setCurrentChapter: (chapter: string | null) => void;
+
+  // Document data
+  chapterData: ChapterData | null;
+  setChapterData: (data: ChapterData | null) => void;
+  updateChapterTargetText: (text: string) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
-  segments: [],
-  setSegments: (segments) => set({ segments }),
-
-  updateSegment: (id, newTarget, newStatus, newVersion) =>
-    set((state) => ({
-      segments: state.segments.map((seg) =>
-        seg.id === id
-          ? { ...seg, target_text: newTarget, status: newStatus, version: newVersion }
-          : seg
-      )
-    })),
-
   activeProjectId: null,
   setActiveProject: (id) => set({ activeProjectId: id }),
 
@@ -71,18 +50,16 @@ export const useAppStore = create<AppState>((set) => ({
   loadDemoProject: () => {
     set({
       activeProjectId: "demo-project",
-      chapters: ["ch_1", "ch_2", "ch_3"],
-      currentChapter: "ch_1",
-      segments: Array.from({ length: 50 }).map((_, i) => ({
-        id: `seg_${i}`,
-        chapter_id: 'ch_1',
-        segment_index: i,
-        source_text: `This is dummy segment ${i} with an inline <1>tag</1> to demonstrate the layout.`,
-        target_text: `Это фиктивный сегмент ${i} с тегом для демонстрации интерфейса.`,
-        inline_tags: { "1": { prefix: "<b>", suffix: "</b>" } },
-        status: i % 5 === 0 ? 'LOCKED' : (i % 2 === 0 ? 'NEW' : 'EDITED'),
-        version: 1,
-      })) as any
+      chapters: ["ch1", "ch2", "ch3"],
+      currentChapter: "ch1",
+      chapterData: {
+        id: "demo-uuid",
+        chapter_id: "ch1",
+        source_text: "This is paragraph 1 of chapter 1. It flows continuously without any table borders or segmentation lines.\n\nThis is paragraph 2 of chapter 1.",
+        target_text: "Это абзац 1 главы 1. Он идет сплошным текстом без каких-либо границ таблиц или линий сегментации.\n\nЭто абзац 2 главы 1.",
+        status: "NEW",
+        version: 1
+      }
     });
   },
 
@@ -92,6 +69,9 @@ export const useAppStore = create<AppState>((set) => ({
   currentChapter: null,
   setCurrentChapter: (chapter) => set({ currentChapter: chapter }),
 
-  activeSegmentId: null,
-  setActiveSegmentId: (id) => set({ activeSegmentId: id }),
+  chapterData: null,
+  setChapterData: (data) => set({ chapterData: data }),
+  updateChapterTargetText: (text) => set((state) => ({
+    chapterData: state.chapterData ? { ...state.chapterData, target_text: text } : null
+  })),
 }));
